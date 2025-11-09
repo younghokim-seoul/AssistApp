@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=" "
+        android:textSize="22sp"
+        android:textColor="#FFFFFF"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:padding="20dp" />
+
+    <ImageButton
+        android:id="@+id/btnManageFeatures"
+        android:src="@android:drawable/ic_menu_manage"
+        android:contentDescription="기능 관리"
+        android:background="@null"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:padding="16dp" />
+</FrameLayout>
