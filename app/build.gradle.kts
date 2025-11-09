@@ -74,4 +74,7 @@ dependencies {
     implementation(libs.okhttp.loggingInterceptor)
 
     implementation(libs.timber)
+
+    implementation(libs.kotlin.serialization)
+    implementation(libs.kotlin.coroutine.core)
 }
