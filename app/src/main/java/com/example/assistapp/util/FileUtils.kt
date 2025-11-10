@@ -2,6 +2,7 @@ package com.example.assistapp.util
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -20,4 +21,9 @@ suspend fun Bitmap.toTempFile(
         this@toTempFile.compress(Bitmap.CompressFormat.JPEG, quality, out)
     }
     file
+}
+
+suspend fun File.toBase64(): String = withContext(Dispatchers.IO) {
+    val fileBytes = readBytes()
+    Base64.encodeToString(fileBytes, Base64.NO_WRAP)
 }
