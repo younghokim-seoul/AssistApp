@@ -1,5 +1,6 @@
 package com.example.assistapp
 
+import android.Manifest
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
@@ -7,8 +8,12 @@ import android.speech.tts.TextToSpeech
 import android.view.GestureDetector
 import android.view.MotionEvent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.example.assistapp.databinding.ActivityMainBinding
-import java.util.*
+import com.gun0912.tedpermission.coroutine.TedPermission
+import kotlinx.coroutines.launch
+import timber.log.Timber
+import java.util.Locale
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var binding: ActivityMainBinding
@@ -16,7 +21,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var gestureDetector: GestureDetector
     private lateinit var prefs: SharedPreferences
     private var currentScreen = 0
-    private var screens = mutableListOf("메인화면")
+    private var screens = mutableListOf("메인화면","기능 1","기능 2")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,7 +39,19 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             startActivity(Intent(this, FeatureManagerActivity::class.java))
         }
 
+        requestCameraPermission()
+
         speakCurrent()
+    }
+
+    private fun requestCameraPermission() {
+        lifecycleScope.launch {
+            TedPermission.create()
+                .setPermissions(Manifest.permission.CAMERA)
+                .setRationaleMessage("카메라 권한이 필요합니다.")
+                .setDeniedMessage("[설정] > [권한]에서 권한을 허용할 수 있습니다.")
+                .check()
+        }
     }
 
     override fun onResume() {
@@ -65,7 +82,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         private val SWIPE_VELOCITY_THRESHOLD = 100
         private var lastTapTime = 0L
 
-        override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+        override fun onFling(
+            e1: MotionEvent?,
+            e2: MotionEvent,
+            velocityX: Float,
+            velocityY: Float
+        ): Boolean {
             if (e1 == null || e2 == null) return false
             val diffX = e2.x - e1.x
 
@@ -78,6 +100,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
             val now = System.currentTimeMillis()
+            Timber.i("onSingleTapConfirmed")
             if (now - lastTapTime < 400) {
                 onDoubleTap()
                 lastTapTime = 0
@@ -105,6 +128,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun onDoubleTap() {
+        Timber.i("onDoubleTap $currentScreen")
         when (screens[currentScreen]) {
             "기능 1" -> startActivity(Intent(this, Feature1Activity::class.java))
             "기능 2" -> startActivity(Intent(this, Feature2Activity::class.java))

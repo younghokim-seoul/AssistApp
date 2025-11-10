@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -8,6 +11,9 @@ android {
     namespace = "com.example.assistapp"
     compileSdk = 36
 
+    val properties = Properties()
+    properties.load(FileInputStream(rootProject.file("local.properties")))
+
     defaultConfig {
         applicationId = "com.example.assistapp"
         minSdk = 24
@@ -16,6 +22,8 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "ACCESS_KEY", "\"${properties.getProperty("accessKey")}\"")
     }
 
     buildTypes {
@@ -28,16 +36,16 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
         viewBinding = true
-
+        buildConfig = true
     }
 }
 
@@ -77,4 +85,11 @@ dependencies {
 
     implementation(libs.kotlin.serialization)
     implementation(libs.kotlin.coroutine.core)
+
+    implementation(libs.tedpermission.coroutine)
+
+    implementation(libs.tensorflow.lite)
+    implementation(libs.tensorflow.lite.gpu)
+    implementation(libs.tensorflow.lite.support)
+
 }
