@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.view.GestureDetector
 import android.view.MotionEvent
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.Camera
@@ -16,6 +17,7 @@ import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import com.example.assistapp.databinding.ActivityFeature1Binding
+import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import java.util.Locale
 import java.util.concurrent.ExecutionException
@@ -26,6 +28,9 @@ import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 
+
+
+@AndroidEntryPoint
 class Feature1Activity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var binding: ActivityFeature1Binding
     private lateinit var gestureDetector: GestureDetector
@@ -36,6 +41,9 @@ class Feature1Activity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var cameraExecutor: ExecutorService
 
 
+    private val analysisViewModel : AnalysisViewModel by viewModels()
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Timber.d("Feature1Activity")
@@ -44,8 +52,8 @@ class Feature1Activity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         cameraExecutor = Executors.newSingleThreadExecutor()
         gestureDetector = GestureDetector(this, GestureListener())
-//        tts = TextToSpeech(this, this)
-//        speak("기능 1 화면입니다. 두 번 탭하면 실행합니다.")
+        tts = TextToSpeech(this, this)
+        speak("기능 1 화면입니다. 두 번 탭하면 실행합니다.")
 
         setUpCamera()
     }
@@ -88,7 +96,8 @@ class Feature1Activity : AppCompatActivity(), TextToSpeech.OnInitListener {
             .build()
             .apply {
                 setAnalyzer(cameraExecutor) { imageProxy ->
-
+                      Timber.d("imageProxy %s", imageProxy)
+                    analysisViewModel.startAnalysis(imageProxy)
                 }
             }
 
@@ -99,7 +108,7 @@ class Feature1Activity : AppCompatActivity(), TextToSpeech.OnInitListener {
             )
             preview.surfaceProvider = binding.previewView.surfaceProvider
         } catch (exc: IllegalStateException) {
-            Timber.e("Use case binding failed. This must be running on main thread.", exc)
+            Timber.e(exc, "Use case binding failed. This must be running on main thread.%s")
         }
     }
 

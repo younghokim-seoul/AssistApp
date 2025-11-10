@@ -11,10 +11,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.assistapp.databinding.ActivityMainBinding
 import com.gun0912.tedpermission.coroutine.TedPermission
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.Locale
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var binding: ActivityMainBinding
     private lateinit var tts: TextToSpeech
@@ -107,6 +109,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             } else {
                 lastTapTime = now
             }
+            onDoubleTap()
             return true
         }
     }

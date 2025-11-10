@@ -3,6 +3,7 @@ package com.example.assistapp.data.local.`object`
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.camera.core.ImageProxy
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.tensorflow.lite.Interpreter
@@ -12,8 +13,15 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
+import javax.inject.Inject
+import javax.inject.Singleton
+import androidx.core.graphics.scale
 
-class ObjectAnalysis(private val context: Context) : ObjectDataSource, AutoCloseable {
+
+@Singleton
+class ObjectAnalysis @Inject constructor(
+    @param:ApplicationContext private val context: Context
+) : ObjectDataSource, AutoCloseable {
 
 
     // --- TFLite 및 모델 설정 ---
@@ -109,6 +117,8 @@ class ObjectAnalysis(private val context: Context) : ObjectDataSource, AutoClose
 
             val detected = postProcess(outputBuffer[0])
 
+           Timber.d("output %s", detected)
+
             return@withContext ObjectPoint(detected = detected)
         }
     }
@@ -121,7 +131,7 @@ class ObjectAnalysis(private val context: Context) : ObjectDataSource, AutoClose
      * 전처리: Bitmap을 TFLite 입력 형식(Float32 ByteBuffer)으로 변환
      */
     private fun preProcess(bitmap: Bitmap): ByteBuffer {
-        val rescaledBitmap = Bitmap.createScaledBitmap(bitmap, modelW, modelH, true)
+        val rescaledBitmap = bitmap.scale(modelW, modelH)
         val cap = 1 * modelW * modelH * 3 * 4 // 1 * W * H * 3(RGB) * 4(Float)
         val buffer = ByteBuffer.allocateDirect(cap).order(ByteOrder.nativeOrder())
 

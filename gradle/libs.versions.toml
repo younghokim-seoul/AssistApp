@@ -12,11 +12,15 @@ activityCompose = "1.11.0"
 composeBom = "2024.09.00"
 okhttp = "5.3.0"
 kotlin-coroutine = "1.10.2"
+hilt = "2.57.2"
+
 
 tedpermissionCoroutine = "3.4.2"
 tensorflow-version-lite = "2.17.0"
 tensorflow-version-lite-gpu = "2.17.0"
 tensorflow-version-lite-support = "0.5.0"
+
+ksp = "2.3.2"
 
 [libraries]
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCamera2" }
@@ -52,8 +56,12 @@ tensorflow-lite = { module = "org.tensorflow:tensorflow-lite", version.ref = "te
 tensorflow-lite-gpu = { module = "org.tensorflow:tensorflow-lite-gpu", version.ref = "tensorflow-version-lite-gpu" }
 tensorflow-lite-support = { module = "org.tensorflow:tensorflow-lite-support", version.ref = "tensorflow-version-lite-support" }
 
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }

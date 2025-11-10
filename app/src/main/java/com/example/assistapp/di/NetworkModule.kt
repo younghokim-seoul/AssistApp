@@ -1,0 +1,45 @@
+package com.example.assistapp.di
+
+
+import com.example.assistapp.data.network.INetworkUseCase
+import com.example.assistapp.data.network.NetworkUseCase
+import dagger.Binds
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import timber.log.Timber
+import javax.inject.Singleton
+import kotlin.apply
+
+@InstallIn(SingletonComponent::class)
+@Module
+internal object NetworkModule {
+    @Provides
+    @Singleton
+    fun provideLoggingInterceptor(): HttpLoggingInterceptor = HttpLoggingInterceptor { message ->
+        Timber.tag("OkHttp").d(message)
+    }.apply {
+        level = HttpLoggingInterceptor.Level.BASIC
+    }
+
+    @Singleton
+    @Provides
+    fun provideOkHttpClient(
+        loggingInterceptor: HttpLoggingInterceptor
+    ): OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor(loggingInterceptor)
+        .build()
+}
+
+@Suppress("unused")
+@InstallIn(SingletonComponent::class)
+@Module
+internal abstract class NetworkModuleBinds {
+    @Binds
+    abstract fun bindsNetworkUseCase(
+        networkUseCase: NetworkUseCase
+    ): INetworkUseCase
+}
