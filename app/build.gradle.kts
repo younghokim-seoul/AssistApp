@@ -1,7 +1,7 @@
 import java.io.FileInputStream
 import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 
 
 
@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -29,7 +30,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "ACCESS_KEY", """${properties.getProperty("accessKey")}""")
+        buildConfigField("String", "ACCESS_KEY", "\"${properties.getProperty("accessKey")}\"")
     }
 
     buildTypes {
@@ -103,5 +104,9 @@ dependencies {
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+
+    implementation(platform("com.aallam.openai:openai-client-bom:4.0.1"))
+    implementation("com.aallam.openai:openai-client")
+    implementation("io.ktor:ktor-client-okhttp")
 
 }

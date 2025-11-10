@@ -96,7 +96,6 @@ class Feature1Activity : AppCompatActivity(), TextToSpeech.OnInitListener {
             .build()
             .apply {
                 setAnalyzer(cameraExecutor) { imageProxy ->
-                      Timber.d("imageProxy %s", imageProxy)
                     analysisViewModel.startAnalysis(imageProxy)
                 }
             }

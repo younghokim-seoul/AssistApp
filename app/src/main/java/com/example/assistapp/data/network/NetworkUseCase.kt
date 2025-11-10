@@ -7,18 +7,13 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
 import timber.log.Timber
+import javax.inject.Inject
 
 
-internal class NetworkUseCase : INetworkUseCase {
+internal class NetworkUseCase @Inject constructor(
+    private val okHttpClient: OkHttpClient
+) : INetworkUseCase {
 
-    private val okHttpClient by lazy {
-        OkHttpClient.Builder()
-            .addInterceptor(HttpLoggingInterceptor { message ->
-                Timber.tag("OkHttp").d(message)
-            }.apply {
-                level = HttpLoggingInterceptor.Level.BASIC
-            }).build()
-    }
 
     override suspend fun requestApi(request: IRequest): NetworkResult {
         return requestApi(request.buildRequestApi())

@@ -114,11 +114,7 @@ class ObjectAnalysis @Inject constructor(
             val outputs = mutableMapOf<Int, Any>()
             outputs[0] = outputBuffer // 'by lazy'로 생성된 버퍼 재사용
             interpreter.runForMultipleInputsOutputs(arrayOf(inputBuffer), outputs)
-
             val detected = postProcess(outputBuffer[0])
-
-           Timber.d("output %s", detected)
-
             return@withContext ObjectPoint(detected = detected)
         }
     }
