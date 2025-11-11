@@ -23,18 +23,14 @@ class ObjectAnalysis @Inject constructor(
     @param:ApplicationContext private val context: Context
 ) : ObjectDataSource, AutoCloseable {
 
-
-    // --- TFLite 및 모델 설정 ---
     private val confidenceThreshold = 0.5f
     private val modelFile = "weights_int8.tflite"
     private val labelFile = "labels.txt"
 
-    // 1. 레이블 리스트 (처음 접근 시 로드)
     private val labels: List<String> by lazy {
         loadLabels()
     }
 
-    // 2. TFLite 인터프리터 (처음 접근 시 로드)
     private val interpreter: Interpreter by lazy {
         val modelBuffer = loadModelFile()
         val options = Interpreter.Options().apply {
@@ -48,23 +44,18 @@ class ObjectAnalysis @Inject constructor(
     private val modelW: Int by lazy { shape[2] }
     private val imageStd = 255.0f
 
-    // 3. 모델 출력 Shape (interpreter에 의존)
     private val outputShape: IntArray by lazy {
         interpreter.getOutputTensor(0).shape() // [1, 84, 8400]
     }
 
-    // 4. 클래스 개수 (labels에 의존)
     private val numClasses: Int by lazy {
         labels.size
     }
 
-    // 5. 제안 개수 (outputShape에 의존)
     private val numProposals: Int by lazy {
         outputShape[2] // 8400
     }
 
-    // 6. 출력 버퍼 (모든 설정에 의존)
-    // 매번 추론 시 생성하지 않고 재사용하기 위해 by lazy로 한 번만 생성
     private val outputBuffer: Array<Array<FloatArray>> by lazy {
         val expectedChannels = 4 + numClasses
         if (outputShape[0] != 1 || outputShape[1] != expectedChannels || outputShape[2] != numProposals) {
@@ -95,9 +86,6 @@ class ObjectAnalysis @Inject constructor(
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
     }
 
-    /**
-     * 레이블 파일을 List<String>으로 로드합니다.
-     */
     private fun loadLabels(): List<String> {
         return context.assets.open(labelFile).bufferedReader().useLines { lines ->
             lines.filter { it.isNotEmpty() }.toList()
@@ -123,9 +111,6 @@ class ObjectAnalysis @Inject constructor(
     private fun imageToBitmap(imageProxy: ImageProxy): Bitmap = imageProxy.toBitmap()
 
 
-    /**
-     * 전처리: Bitmap을 TFLite 입력 형식(Float32 ByteBuffer)으로 변환
-     */
     private fun preProcess(bitmap: Bitmap): ByteBuffer {
         val rescaledBitmap = bitmap.scale(modelW, modelH)
         val cap = 1 * modelW * modelH * 3 * 4 // 1 * W * H * 3(RGB) * 4(Float)

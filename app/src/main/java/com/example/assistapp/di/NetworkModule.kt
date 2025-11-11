@@ -56,7 +56,7 @@ internal object NetworkModule {
             preconfigured = okHttpClient
         }
         val apiKey = BuildConfig.ACCESS_KEY
-        Timber.i("apiKey=> " + apiKey)
+
         val config = OpenAIConfig(
             token = apiKey,
             timeout = Timeout(socket = 60.seconds),

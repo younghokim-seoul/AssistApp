@@ -13,7 +13,7 @@
         android:theme="@style/Theme.Assistapp">
         <activity android:name=".Feature3Activity" />
         <activity android:name=".Feature2Activity" />
-        <activity android:name=".Feature1Activity" />
+        <activity android:name=".AnalysisActivity" />
         <activity android:name=".FeatureManagerActivity" />
         <activity
             android:name=".MainActivity"

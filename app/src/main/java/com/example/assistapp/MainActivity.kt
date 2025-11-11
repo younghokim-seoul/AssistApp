@@ -133,7 +133,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private fun onDoubleTap() {
         Timber.i("onDoubleTap $currentScreen")
         when (screens[currentScreen]) {
-            "기능 1" -> startActivity(Intent(this, Feature1Activity::class.java))
+            "기능 1" -> startActivity(AnalysisActivity.newIntent(this@MainActivity))
             "기능 2" -> startActivity(Intent(this, Feature2Activity::class.java))
             "기능 3" -> startActivity(Intent(this, Feature3Activity::class.java))
         }

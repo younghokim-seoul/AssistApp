@@ -2,6 +2,8 @@ package com.example.assistapp.di
 
 import com.example.assistapp.data.local.`object`.ObjectAnalysis
 import com.example.assistapp.data.local.`object`.ObjectDataSource
+import com.example.assistapp.data.local.papar.PaperAnalysis
+import com.example.assistapp.data.local.papar.PaperDataSource
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -17,4 +19,10 @@ abstract class DataModule {
     abstract fun bindObjectDataSource(
         objectAnalysis: ObjectAnalysis
     ): ObjectDataSource
+
+    @Binds
+    @Singleton
+    abstract fun bindPaperDataSource(
+     paperAnalysis: PaperAnalysis
+    ): PaperDataSource
 }
