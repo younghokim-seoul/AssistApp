@@ -23,7 +23,7 @@ class ObjectAnalysis @Inject constructor(
     @param:ApplicationContext private val context: Context
 ) : ObjectDataSource, AutoCloseable {
 
-    private val confidenceThreshold = 0.5f
+    private val confidenceThreshold = 0.7f
     private val modelFile = "weights_int8.tflite"
     private val labelFile = "labels.txt"
 
@@ -42,7 +42,8 @@ class ObjectAnalysis @Inject constructor(
     private val shape: IntArray by lazy { interpreter.getInputTensor(0).shape() }
     private val modelH: Int by lazy { shape[1] }
     private val modelW: Int by lazy { shape[2] }
-    private val imageStd = 255.0f
+    private val imageMean = 127.5f
+    private val imageStd = 127.5f
 
     private val outputShape: IntArray by lazy {
         interpreter.getOutputTensor(0).shape() // [1, 84, 8400]
@@ -113,17 +114,18 @@ class ObjectAnalysis @Inject constructor(
 
     private fun preProcess(bitmap: Bitmap): ByteBuffer {
         val rescaledBitmap = bitmap.scale(modelW, modelH)
-        val cap = 1 * modelW * modelH * 3 * 4 // 1 * W * H * 3(RGB) * 4(Float)
+        // 1 * W * H * 3(RGB) * 4(Float)
+        val cap = 1 * modelW * modelH * 3 * 4
         val buffer = ByteBuffer.allocateDirect(cap).order(ByteOrder.nativeOrder())
 
         val intValues = IntArray(modelW * modelH)
         rescaledBitmap.getPixels(intValues, 0, modelW, 0, 0, modelW, modelH)
 
-        // 픽셀 정규화 [R, G, B] (Dart 로직과 동일)
+        // 픽셀 정규화: (값 - 127.5) / 127.5
         for (pixelValue in intValues) {
-            buffer.putFloat(((pixelValue shr 16) and 0xFF) / imageStd) // Red
-            buffer.putFloat(((pixelValue shr 8) and 0xFF) / imageStd)  // Green
-            buffer.putFloat((pixelValue and 0xFF) / imageStd)         // Blue
+            buffer.putFloat((((pixelValue shr 16) and 0xFF) - imageMean) / imageStd) // Red
+            buffer.putFloat((((pixelValue shr 8) and 0xFF) - imageMean) / imageStd)  // Green
+            buffer.putFloat(((pixelValue and 0xFF) - imageMean) / imageStd)         // Blue
         }
 
         buffer.rewind()
@@ -134,9 +136,12 @@ class ObjectAnalysis @Inject constructor(
         // detections shape is [84, 8400]
         for (i in 0 until numProposals) { // 8400번 반복
             for (c in 0 until numClasses) { // 80번 반복
-                // Dart: output[4 + c][i]
+
+                // 디양자화 없이 Float 퍼센테이지를 바로 읽음
                 val classConfidence = detections[c + 4][i]
+
                 if (classConfidence > confidenceThreshold) {
+                     Timber.d("감지됨: ${labels[c]} ($classConfidence)") // 필요시 로그 활성화
                     return true // 감지 성공!
                 }
             }

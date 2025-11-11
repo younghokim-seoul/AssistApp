@@ -19,7 +19,7 @@ import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.OpenAI
 import com.example.assistapp.data.local.`object`.ObjectDataSource
 import com.example.assistapp.data.local.papar.PaperAnalysis
-import com.example.assistapp.data.network.model.Summary
+import com.example.assistapp.model.Summary
 import com.example.assistapp.util.toBase64
 import com.example.assistapp.util.toTempFile
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,6 +38,7 @@ import java.io.IOException
 import javax.inject.Inject
 
 const val ANALYSIS_MODE_KEY = "analysisMode"
+
 @HiltViewModel
 class AnalysisViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
@@ -49,7 +50,8 @@ class AnalysisViewModel @Inject constructor(
 ) : ViewModel() {
 
 
-    val analysisMode: StateFlow<AnalysisMode> = savedStateHandle.getStateFlow(key = ANALYSIS_MODE_KEY, initialValue = AnalysisMode.CLOTHES)
+    val analysisMode: StateFlow<AnalysisMode> =
+        savedStateHandle.getStateFlow(key = ANALYSIS_MODE_KEY, initialValue = AnalysisMode.CLOTHES)
 
     private val _stateFlow: MutableStateFlow<AnalysisState> =
         MutableStateFlow(AnalysisState.Uninitialized)
@@ -60,54 +62,85 @@ class AnalysisViewModel @Inject constructor(
 
     fun startAnalysis(imageProxy: ImageProxy) {
 
-
         if (_stateFlow.value is AnalysisState.Success) {
             imageProxy.close()
             return
         }
-        setState(AnalysisState.Scanning)
 
         if (!processingMutex.tryLock()) {
             imageProxy.close()
             return
         }
 
+        setState(AnalysisState.Scanning)
+
         viewModelScope.launch {
-
-            var detectedBitmap: Bitmap? = null
-
             runCatching {
-                val result = objectAnalysis.infer(imageProxy)
-
-                if (result.detected) {
-                    Timber.d("!!! 옷 감지 성공. 프레임 캡처 !!!")
-                    setState(AnalysisState.ObjectDetected)
-                    detectedBitmap = imageProxy.toBitmap()
+                when (analysisMode.value) {
+                    AnalysisMode.CLOTHES -> runClothesAnalysis(imageProxy)
+                    AnalysisMode.PAPER -> runPaperAnalysis(imageProxy)
                 }
             }.onFailure {
-                Timber.e(it, "TFLite 추론 실패")
                 setState(AnalysisState.Error(it))
             }.also {
-                imageProxy.close()
+                processingMutex.unlock()
             }
+        }
+    }
 
-            detectedBitmap?.let { bitmap ->
-                var tempFile: File? = null
-                runCatching {
-                    setState(AnalysisState.RequestingSummary)
-                    tempFile = bitmap.toTempFile(context)
-                    Timber.d("GPT 요약 요청 시작...")
-                    val summary = requestSummaryWithSdk(tempFile)
-                    Timber.d("GPT 요약: ${summary.summaries}")
-                    setState(AnalysisState.Success(summary.summaries))
-                }.onFailure {
-                    Timber.e(it, "GPT API 호출 또는 파일 변환 실패")
-                    setState(AnalysisState.Error(it))
-                }.also {
-                    tempFile?.delete()
-                }
+    private suspend fun runPaperAnalysis(imageProxy: ImageProxy) {
+        var detectedBitmap: Bitmap? = null
+
+
+        runCatching {
+            val result = paperAnalysis.infer(imageProxy)
+            if (result.detectedLabel != null) {
+                Timber.d("!!! 종이 감지 성공: ${result.detectedLabel} (${result.confidence}) !!!")
+                setState(AnalysisState.PaperDetected(result.detectedLabel, result.confidence))
+                detectedBitmap = imageProxy.toBitmap()
             }
-            processingMutex.unlock()
+        }.onFailure {
+            Timber.e(it)
+            setState(AnalysisState.Error(it))
+        }.also {
+            if (detectedBitmap == null) imageProxy.close()
+        }
+        detectedBitmap?.let { requestOpenAI(it) }
+    }
+
+    private suspend fun runClothesAnalysis(imageProxy: ImageProxy) {
+        var detectedBitmap: Bitmap? = null
+
+        runCatching {
+            val result = objectAnalysis.infer(imageProxy)
+
+            if (result.detected) {
+                setState(AnalysisState.ObjectDetected)
+                detectedBitmap = imageProxy.toBitmap()
+            }
+        }.onFailure {
+            Timber.e(it)
+            setState(AnalysisState.Error(it))
+        }.also {
+            if (detectedBitmap == null) imageProxy.close()
+        }
+
+        detectedBitmap?.let { requestOpenAI(it) }
+    }
+
+    private suspend fun requestOpenAI(bitmap: Bitmap) {
+        var tempFile: File? = null
+        runCatching {
+            setState(AnalysisState.RequestingSummary)
+            tempFile = bitmap.toTempFile(context)
+
+            val summary = requestSummaryWithSdk(tempFile) // API 호출
+            Timber.d("OPEN AI summary ${summary.summaries}")
+            setState(AnalysisState.Success(summary.summaries))
+        }.onFailure {
+            setState(AnalysisState.Error(it))
+        }.also {
+            tempFile?.delete()
         }
     }
 
@@ -116,8 +149,9 @@ class AnalysisViewModel @Inject constructor(
 
         val base64Image = file.toBase64()
 
+
         val promptText = """
-            옷 사진을 분석해서 한글로 요약주세요.
+            사진을 분석해서 한글로 요약주세요.
             반드시 아래 JSON으로만 응답:
             {
               "summaries": ""

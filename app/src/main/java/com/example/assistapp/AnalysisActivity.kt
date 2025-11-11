@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.view.GestureDetector
 import android.view.MotionEvent
-import android.view.ViewGroup
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.Camera
@@ -17,9 +16,6 @@ import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -71,6 +67,7 @@ class AnalysisActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                             is AnalysisState.Uninitialized -> handleUninitialized()
                             is AnalysisState.Scanning -> handleScanning()
                             is AnalysisState.ObjectDetected -> handleObjectDetected()
+                            is AnalysisState.PaperDetected -> handlePagerDetected(state.label+"("+String.format("%.2f",state.confidence)+")")
                             is AnalysisState.RequestingSummary -> handleRequestingSummary()
                             is AnalysisState.Success -> handleSuccess(state.summaryScript)
                             is AnalysisState.Error -> handleError()
@@ -91,14 +88,21 @@ class AnalysisActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun handleObjectDetected() = with(binding) {
+        Timber.i("인식 김인식")
         tvStatus.text = "인식되었습니다..."
     }
 
+    private fun handlePagerDetected(label: String) = with(binding) {
+        tvStatus.text = "인식되었습니다...$label"
+    }
+
     private fun handleRequestingSummary() = with(binding) {
+        speak("스캔된 제품 정보를 기다리는 중...")
         tvStatus.text = "스캔된 제품 정보를 기다리는 중..."
     }
 
     private fun handleSuccess(summary: String) = with(binding) {
+        speak(summary)
         tvStatus.text = summary
     }
 
@@ -130,6 +134,7 @@ class AnalysisActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val preview = Preview.Builder()
             .setResolutionSelector(resolutionSelector)
             .build()
+
 
 
         val cameraSelector = CameraSelector
@@ -215,7 +220,6 @@ class AnalysisActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     companion object {
         fun newIntent(context: Context, mode: AnalysisMode): Intent {
             return Intent(context, AnalysisActivity::class.java).apply {
-
                 putExtra(ANALYSIS_MODE_KEY, mode)
             }
         }

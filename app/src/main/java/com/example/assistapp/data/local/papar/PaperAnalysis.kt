@@ -2,6 +2,7 @@ package com.example.assistapp.data.local.papar
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.media.FaceDetector.Face.CONFIDENCE_THRESHOLD
 import androidx.camera.core.ImageProxy
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +19,7 @@ import javax.inject.Singleton
 import androidx.core.graphics.scale
 import com.example.assistapp.data.local.`object`.ObjectDataSource
 import com.example.assistapp.data.local.`object`.ObjectPoint
+import kotlin.math.exp
 
 
 @Singleton
@@ -45,20 +47,15 @@ class PaperAnalysis @Inject constructor(
     private val modelC: Int by lazy { inputShape[1] }
     private val modelH: Int by lazy { inputShape[2] }
     private val modelW: Int by lazy { inputShape[3] }
+
+    private val imageMean = 255.0f
     private val imageStd = 255.0f
 
     private val outputShape: IntArray by lazy { interpreter.getOutputTensor(0).shape() } // [1, 2]
-    private val numClasses: Int by lazy { outputShape[1] } // 2
+    private val numClasses: Int by lazy { outputShape[1] }
 
 
     private val outputBuffer: Array<FloatArray> by lazy {
-        // Shape 검증
-        if (numClasses != labels.size) {
-            throw IllegalArgumentException(
-                "모델 출력 클래스 수(${numClasses})와 " +
-                        "레이블 파일(${labelFile})의 줄 수(${labels.size})가 다릅니다."
-            )
-        }
         Array(outputShape[0]) { FloatArray(outputShape[1]) }
     }
 
@@ -102,54 +99,58 @@ class PaperAnalysis @Inject constructor(
 
     private fun preProcess(bitmap: Bitmap): ByteBuffer {
         val rescaledBitmap = Bitmap.createScaledBitmap(bitmap, modelW, modelH, true)
-        val cap = 1 * modelC * modelH * modelW * 4 // 1 * 3 * 224 * 224 * 4(Float)
+        val cap = 1 * modelC * modelH * modelW * 4
         val buffer = ByteBuffer.allocateDirect(cap).order(ByteOrder.nativeOrder())
-
         val intValues = IntArray(modelW * modelH)
         rescaledBitmap.getPixels(intValues, 0, modelW, 0, 0, modelW, modelH)
 
-        // NCHW (평면형) 형식으로 버퍼 채우기
-        // [RRRR...][GGGG...][BBBB...]
         val area = modelW * modelH
         for (i in 0 until area) {
             val pixelValue = intValues[i]
-            // Red 채널 (인덱스 0 ~ area-1)
-            buffer.putFloat(((pixelValue shr 16) and 0xFF) / imageStd)
+            buffer.putFloat((((pixelValue shr 16) and 0xFF) - imageMean) / imageStd) // Red
         }
         for (i in 0 until area) {
             val pixelValue = intValues[i]
-            // Green 채널 (인덱스 area ~ 2*area-1)
-            buffer.putFloat(((pixelValue shr 8) and 0xFF) / imageStd)
+            buffer.putFloat((((pixelValue shr 8) and 0xFF) - imageMean) / imageStd) // Green
         }
         for (i in 0 until area) {
             val pixelValue = intValues[i]
-            // Blue 채널 (인덱스 2*area ~ 3*area-1)
-            buffer.putFloat((pixelValue and 0xFF) / imageStd)
+            buffer.putFloat(((pixelValue and 0xFF) - imageMean) / imageStd) // Blue
         }
 
         buffer.rewind()
         return buffer
     }
 
-    private fun postProcess(probabilities: FloatArray): PaperResult {
+    private fun postProcess(logits: FloatArray): PaperResult {
 
-        if (probabilities.isEmpty()) return PaperResult.empty
+        if (logits.isEmpty()) return PaperResult.empty
 
         var maxIndex = 0
-        var maxConfidence = probabilities[0]
-
-        for (i in 1 until probabilities.size) {
-            if (probabilities[i] > maxConfidence) {
-                maxConfidence = probabilities[i]
+        var maxConfidence = logits[0]
+        for (i in 1 until logits.size) {
+            if (logits[i] > maxConfidence) {
+                maxConfidence = logits[i]
                 maxIndex = i
             }
         }
 
+        Timber.i("Logit: $maxConfidence)")
+
+        if (maxConfidence < 2.15f) {
+            return PaperResult.empty
+        }
+
+        val detectedLabel = labels[maxIndex]
+
+        Timber.i("Paper Analysis Result: $detectedLabel (Logit: $maxConfidence)")
+
         return PaperResult(
-            detectedLabel = labels[maxIndex],
+            detectedLabel = detectedLabel,
             confidence = maxConfidence
         )
     }
+
 
     override fun close() {
         interpreter.close()
